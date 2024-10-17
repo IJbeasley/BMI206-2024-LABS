@@ -44,19 +44,30 @@ M
 <br>
 
 ### __Compute the *minor* allele frequency for every SNP. Check MAFs are <0.5.__
+
 ```{r, eval=TRUE}
 MAFs = array(0,M)
 
 for(i in 1:M) {
       MAFs[i] = sum(genos[,i]) / (2*N)
       
+      # checking that MAF<0.5
       # if major allele freq was calculated, then 
-      # calculate minor allele freq as 1-allele freq
-      if(MAFs[i]>0.5){
-        MAFs[i] = 1-MAFs[i]
-      }
+      # take minor allele freq as 1-allele freq
+      # if(MAFs[i]>0.5){
+      #   MAFs[i] = 1-MAFs[i]
+      # }
+      
+      MAFs[i] = min(MAFs[i], 1-MAFs[i])
+      
 }
-MAFs[1:10]
+
+# out of interest, this was the fastest approach I tried
+# MAFs = colSums(genos) / (2*N)
+# MAFs = ifelse(MAFs > 0.5, 1-MAFs, MAFs)
+
+length(MAFs) # check that it was calculated for the right number of snps
+MAFs[1:10] # how does the MAF look for the first 10 snps 
 max(MAFs)
 ```
 <br>
@@ -80,29 +91,30 @@ for(i in 1:M) {
 
 ```{r, eval=TRUE}
 summary(betas)
-hist(betas)
+hist(betas, breaks = 20, main = "Distribution of Estimated Effect sizes")
+
 ```
 <br>
 
-Are there any significantly associated SNPs? If so, which SNPs are they?
+### Are there any significantly associated SNPs? If so, which SNPs are they?
 ```{r,eval=TRUE}
 sig_thresh = 0.05 / M #bonferroni corrected significance test 
 assoc = which(pvalues<sig_thresh)
-assoc
+assoc # the first 10 snps are the significantly associated sns
 ```
 <br>
 
 ### How big are their effect sizes? How significant are they? 
 ```{r, eval=TRUE}
-betas[assoc]
-zscores[assoc]
-pvalues[assoc]
+betas[assoc] # this is how big their effect sizes are
+zscores[assoc] # zscores tell you about significance - but more importantly
+pvalues[assoc] # the p-values tell you how significant they are ... pretty significant, which makes sense given we use the more conservative bonferroni correction 
 ```
 <br>
 
 ### Draw a QQ plot for log10(p) values.
 
-```{r, eval=TRUE}
+```{r, eval=TRUE, fig.height = 9}
 obsLogPvs = sort(-log10(pvalues))
 expLogPvs = sort(-log10(seq(1/M,1,1/M)))
 plot(expLogPvs,obsLogPvs,main='QQ plot')
@@ -112,7 +124,7 @@ points(expLogPvs[(M-length(assoc)):M],obsLogPvs[(M-length(assoc)):M],col="red")
 ```
 <br>
 
-Is there inflation? Use the chi-square statistics to check.
+### Is there inflation? Use the chi-square statistics to check.
 ```{r, eval=TRUE}
 chis = zscores^2
 lambdaGC = median(chis)/0.454 # why .454?
@@ -122,7 +134,7 @@ lambdaGC
 ```
 <br>
 
-Plot the phenotype predictions for the most significant SNP.
+### Plot the phenotype predictions for the most significant SNP.
 ```{r, eval=TRUE}
 topSNP = genos[,order(pvalues)[1]]
 plot(topSNP,phenos)
@@ -148,8 +160,22 @@ cor(ypred,phenos)
 <br>
 
 ### __BONUS: Test each of the associated SNPs for non-linearity.__
+### (stuck) Checking how test for non-linearity
 ```{r, eval=TRUE}
+
 hp = array(0,length(assoc))
+
+for (i in 1:length(assoc)) {
+  g = genos[,assoc[i]]
+  h = g
+  h[h==2]=0 #stuck (? not 100% sure of)
+  #Hint: can use anova(lm(?),lm(?)) or summary(lm(?))
+  # ??? really not sure about this, testing against just intercept
+  hp[i] <- anova( lm(phenos~h), lm(phenos~1) )$Pr[2] #skip multiple test correction for now
+}
+hp 
+
+
 for (i in 1:length(assoc)) {
   g = genos[,assoc[i]]
   h = g
@@ -158,7 +184,6 @@ for (i in 1:length(assoc)) {
   # ??? really not sure about this, testing against just intercept
   hp[i] <- anova( lm(phenos~h), lm(phenos~1) )$Pr[2] #skip multiple test correction for now
 }
-hp 
 ```
 <br>
 
@@ -227,7 +252,7 @@ plot(betas,betas2)
 ## PART2: Simulating genotypes with LD.
 
 ### __Establish some important simulation parameters.__
-```{r}
+```{r, eval=TRUE}
 N = 1000 #number of individuals
 M = 30   #number of non-causal SNPs
 gs = matrix(0,nrow=N,ncol=M)
@@ -236,7 +261,7 @@ gs = matrix(0,nrow=N,ncol=M)
 
 ### __Simulate a GWAS data set.__
 #### First, simulate the causal variant.
-```{r}
+```{r, eval=TRUE}
 set.seed = (42) #set random seed so we all get the same numbers
 MAF = 0.5
 gC = rbinom(N,1,MAF) #causal variant
@@ -244,14 +269,16 @@ gC = rbinom(N,1,MAF) #causal variant
 <br>
 
 #### Then, simulate the phenotypes given the causal variant.
-```{r}
+```{r, eval=TRUE}
 beta = 0.3 #association of causal variant
 pheno = gC*beta + rnorm(N) 
 ```
 <br>
 
-### Generate 10 SNPS in tight LD with the causal SNP.
-```{r}
+#### Generate 10 SNPS in tight LD with the causal SNP.
+
+#### (stuck on prove they have the right LD theoretically)
+```{r, eval=TRUE}
 rho = 0.9
 for(i in 1:10) {
   idx = rbinom(N,1,rho)
@@ -294,8 +321,8 @@ zs = sapply( 1:M, function(i) summary(lm(pheno~gs[,i]))$coef[2,3] )
 ```
 <br>
 
-### Visualize the relationship between the mean z-scores at the tag SNPs and the z-score at the causal SNP.
-```{r,eval=FALSE}
+### (stuck on ... not entirely sure correct) Visualize the relationship between the mean z-scores at the tag SNPs and the z-score at the causal SNP.
+```{r,eval=TRUE}
 par( mfrow=c(2,2) )
 breaks = hist(c(0,zsC,zs),plot=F)$breaks
 hist(zs[1:10],breaks=breaks, col=1, main='LD partners')
@@ -307,23 +334,25 @@ abline(v=zsC)
 ```
 <br>
 
-## Quite stuck here (14/10)
+## Quite stuck here (Date: 14/10)
 
 ### __BONUS: Perform LD score regression. First, calculate the LD scores. There should be M+1 of them.__
-```{r, eval=FALSE}
-# sum the squared Pearson correlation coefficients (r²) of a given SNP with all other SNPs 
-
-cor_mat = apply(gs, MARGIN = 2, function(geno) cor(geno, gs))
+```{r, eval=TRUE}
+# ? LD scores are: the sum the squared Pearson correlation coefficients (r²) of a given SNP with all other SNPs 
+all_gs = cbind(gs, gC)
+cor_mat = apply(all_gs, MARGIN = 2, function(geno) cor(geno, gs))
 colSums(cor_mat^2 - 1)
 
-# ldscores = ? .. don't know where M+1 is coming from 
-ldscores = colSums(cor_mat)
+ldscores = colSums(cor_mat^2 - 1)
 ldscores 
+length(ldscores) # M + 1 = 31 - correct number of ldscores
 ```
 <br>
 
 ### BONUS: Visualize LD score regression.
 ```{r,eval=FALSE}
+# expected [chisq | ] = N h ^ 2 lj + N a + 1
+# https://www.nature.com/articles/ng.3211
 #chis = c( ?, ? )^2
 chis = c( 1, 2 )^2
 plot(ldscores[1:2], chis, ylab=expression(chi^2) )
@@ -339,9 +368,10 @@ summary( lm( ? )$coef[2,1] * M/N
 ```
 <br>
 
-BONUS: What is the true heritability?
+### BONUS: What is the true heritability?
 ```{r, eval=FALSE}
-var(?) / var(?)
+# narrow sence: phenotypic variation / genotypic variation
+var(?) / var(sum())
 ```
 
 
