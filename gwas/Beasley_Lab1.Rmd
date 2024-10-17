@@ -2,7 +2,7 @@
 title: 'Lab 1: Linear models for quantitative genetics'
 subtitle: "BMI 206"
 author: "Isobel Beasley"
-date: "18th October 20224"
+date: "Due: 18th October 20224"
 output: html_document
 ---
 <br>
@@ -22,13 +22,19 @@ phenos = as.matrix(read.table(here::here("gwas/phenos.txt")))
 
 ```{r}
 hist(phenos)
+mean(phenos)
+median(phenos)
 ```
 <br>
+
+Yes, the phenotypes appear roughly normally distributed: single mode / mean, distributed roughly symmetrically about this mean (with perhaps the exception a few left skewed values, but the mean and median values are still quite similar). Additionally, the tails of this distribution do not appear particularly 'fat', meaning the distribution is likely better approximated by a normal distribution than t-distribution. 
 
 ### How are the genotypes encoded?
 ```{r}
 table(genos)
 ```
+The genotypes are encoded such that the heterozygous genotype is 1, the homogyzous genotypes are encoded as 2 or 0, depending on which allele is consider the reference at each locus.
+
 <br>
 
 ### How many individuals are there in the dataset and how many SNPs? (Save them in `N` and `M`, respectively.)
@@ -36,9 +42,9 @@ table(genos)
 dim(genos)
 dim(phenos)
 N = length(phenos)
-N
+N # number of individuals
 M = ncol(genos)
-M
+M # number of SNPs
 ```
 
 <br>
@@ -74,11 +80,14 @@ max(MAFs)
 
 ### __Run a GWAS under an additive model and save the p-values, z-scores, and effect sizes.__
 ```{r, eval=TRUE}
+
 pvalues = array(0,M)
 zscores = array(0,M)
 betas = array(0,M)
+
 for(i in 1:M) {
 	g = genos[,i]
+	# under an additive model means, without considering possible dominance / recessives
 	res = summary(lm(phenos~g))
 	zscores[i] = res$coefficients[2,"t value"]
 	pvalues[i] = res$coefficients[2,"Pr(>|t|)"]
@@ -94,6 +103,8 @@ summary(betas)
 hist(betas, breaks = 20, main = "Distribution of Estimated Effect sizes")
 
 ```
+Most effect sizes are very close to zero (very small). Positve and ne
+Effect sizes are roughly equally likely to be positive, as the are negative (when all snps are considered). 
 <br>
 
 ### Are there any significantly associated SNPs? If so, which SNPs are they?
@@ -145,6 +156,8 @@ abline(lm(phenos~topSNP)$coeff,col="red")
 ### __Build a linear predictor of the phenotype using the associated SNPs.__
 ```{r, eval=TRUE}
 ypred = array(0,N)
+# for each individual, predict their phenotypic score as the sum of their genotypes
+# times the respective effect size calculated for that snp
 for(i in 1:N) {
       ypred[i] = genos[i,assoc] %*% betas[assoc]
 }
