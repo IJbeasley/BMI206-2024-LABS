@@ -11,7 +11,7 @@ output: html_document
 ## PART1: Analyzing provided genotype and phenotype data.
 
 ### __Prepare the data.__
-Read in the genotype and phenotype matrices. 
+### Read in the genotype and phenotype matrices. 
 ```{r}
 genos = as.matrix(read.table(here::here("gwas/genos.txt")))
 phenos = as.matrix(read.table(here::here("gwas/phenos.txt")))
@@ -27,13 +27,15 @@ median(phenos)
 ```
 <br>
 
-Yes, the phenotypes appear roughly normally distributed: single mode / mean, distributed roughly symmetrically about this mean (with perhaps the exception a few left skewed values, but the mean and median values are still quite similar). Additionally, the tails of this distribution do not appear particularly 'fat', meaning the distribution is likely better approximated by a normal distribution than t-distribution. 
+Yes, the observed phenotypes appear to be roughly normally distributed, since we can observe in the above histogram: a single mode at about 0, which roughly corresponds to the mean (```round(mean(phenos), digits = 2)```), and data distributed roughly symmetrically about this mode (with perhaps the exception of a few left skewed values, but the mean and median values are still quite similar). 
+
+Additionally, the tails of this distribution do not appear particularly 'fat', meaning the distribution is likely better approximated by a normal distribution than a t-distribution. 
 
 ### How are the genotypes encoded?
 ```{r}
 table(genos)
 ```
-The genotypes are encoded such that the heterozygous genotype is 1, the homogyzous genotypes are encoded as 2 or 0, depending on which allele is consider the reference at each locus.
+The genotypes are encoded such that the heterozygous genotype for each snp is 1, the homogyzous genotypes are encoded as 2 or 0, depending on which allele is consider the reference at each locus.
 
 <br>
 
@@ -101,25 +103,26 @@ for(i in 1:M) {
 ```{r, eval=TRUE}
 summary(betas)
 hist(betas, breaks = 20, main = "Distribution of Estimated Effect sizes")
-
 ```
-Most effect sizes are very close to zero (very small). Positve and ne
-Effect sizes are roughly equally likely to be positive, as the are negative (when all snps are considered). 
+Most estimated effect sizes are close to zero (small, IQR range ~-0.1 to ~0.1). There seems to be a slight bias towards positive effect sizes (mean & median > 0). However, at a genome-wide level, negative effect sizes are roughly as common as positive effect sizes. The distribution of effect sizes appears to be roughly symmetric around zero. 
+
 <br>
 
 ### Are there any significantly associated SNPs? If so, which SNPs are they?
 ```{r,eval=TRUE}
 sig_thresh = 0.05 / M #bonferroni corrected significance test 
 assoc = which(pvalues<sig_thresh)
-assoc # the first 10 snps are the significantly associated sns
+assoc # the first 10 snps are the significantly associated snps
 ```
 <br>
 
 ### How big are their effect sizes? How significant are they? 
 ```{r, eval=TRUE}
-betas[assoc] # this is how big their effect sizes are
+betas[assoc]
+abs(betas[assoc]) # this is how big their effect sizes are
 zscores[assoc] # zscores tell you about significance - but more importantly
-pvalues[assoc] # the p-values tell you how significant they are ... pretty significant, which makes sense given we use the more conservative bonferroni correction 
+pvalues[assoc] # the p-values tell you how significant they are ... pretty significant, all p-values are at least one order of magnitude smaller than the significance threshold (~5 * 10^-6)
+# and most (8/9) significant p-values are at least 13 orders of magnitude smaller than the significance threshold
 ```
 <br>
 
@@ -173,7 +176,6 @@ cor(ypred,phenos)
 <br>
 
 ### __BONUS: Test each of the associated SNPs for non-linearity.__
-### (stuck) Checking how test for non-linearity
 ```{r, eval=TRUE}
 
 hp = array(0,length(assoc))
@@ -181,9 +183,16 @@ hp = array(0,length(assoc))
 for (i in 1:length(assoc)) {
   g = genos[,assoc[i]]
   h = g
-  h[h==2]=0 #stuck (? not 100% sure of)
+  h[h==2]=0 
   #Hint: can use anova(lm(?),lm(?)) or summary(lm(?))
-  # ??? really not sure about this, testing against just intercept
+  
+  # ? not sure of the below approach I took: 
+  # testing for whether there is any model performance difference between
+  # the model where the only covariate is h (0, and 2 genotypes are combined into 0)
+  # vs. the model with just an intercept term (sample mean) as predictor - 
+  # the idea being if it is an additive model, the average of 
+  # phenotypes of individuals with genotypes 0, 2 = average of phenotypes individual with genotype 1
+  # ... but idk, I feel like there being an imbalanced number of individuals in each h group, might mess with the testing here
   hp[i] <- anova( lm(phenos~h), lm(phenos~1) )$Pr[2] #skip multiple test correction for now
 }
 hp 
@@ -228,6 +237,7 @@ lines( c(0,1,2), tapply(phenos, genos[,non_lin_snp], mean ), col=2, lwd=2  )
 
 ### __Repeat the GWAS to test for recessive rather than additive genetic effects.__
 ```{r, eval=TRUE}
+
 genos2 = genos
 genos2[genos<2]=1 # ?? this sets 0,1 as 1 - but i'd be inclined to set 0,1 as 0, and 2 as 1. 
 pvalues2 = array(0,M)
@@ -254,12 +264,22 @@ setdiff(assoc2, assoc)
 setdiff(assoc, assoc2)
 
 ```
+
+Most of the same SNPs are significant; only the 10th SNP is no longer significant, and no extra SNPs are significant under a recessive model. 
+
 <br>
 
 ### __How did the effect sizes change?__
 ```{r, eval=TRUE}
 plot(betas,betas2)
 ```
+
+Some effect sizes increased, others decreased, and others remained comparable between the two models. 
+
+The SNPs with the largest effect sizes (>1, -1<) in the additive model had similar effect size estimates under the recessive models, which is consistent with the fact that most significant SNPs in the additive model were also significant in the recessive model. 
+
+Some SNPs had estimated effect sizes under the additive model that were very small (~0), but the recessive model had the largest estimated effects (>4, <-4). Since these SNPs were not significant even in the recessive model, it seems likely for this model that lower power is confounding these results (leading to inaccurate effect size estimates and/or insufficient information to call these  SNPs significant). 
+
 <br>
 
 ## PART2: Simulating genotypes with LD.
@@ -278,6 +298,7 @@ gs = matrix(0,nrow=N,ncol=M)
 set.seed = (42) #set random seed so we all get the same numbers
 MAF = 0.5
 gC = rbinom(N,1,MAF) #causal variant
+
 ```
 <br>
 
@@ -290,7 +311,6 @@ pheno = gC*beta + rnorm(N)
 
 #### Generate 10 SNPS in tight LD with the causal SNP.
 
-#### (stuck on prove they have the right LD theoretically)
 ```{r, eval=TRUE}
 rho = 0.9
 for(i in 1:10) {
@@ -298,8 +318,12 @@ for(i in 1:10) {
   gs[,i]=gC*idx+rbinom(N,1,MAF)*(1-idx)
   # test they have the right LD empirically
   cat( 'Observed LD = ', cor( gs[,i], gC ), '\n' )
+  
   # Bonus: prove they have the right LD theoretically
+
 }
+
+
 ```
 <br>
 
@@ -311,7 +335,6 @@ for(i in 1:10) {
   gs[,i+10]=gC*idx+rbinom(N,1,MAF)*(1-idx)
   # test they have the right LD empirically
   cat( 'Observed LD = ', cor( gs[,i+10], gC ), '\n' )
-  # Bonus: prove they have the right LD theoretically
 }
 ```
 <br>
@@ -334,7 +357,7 @@ zs = sapply( 1:M, function(i) summary(lm(pheno~gs[,i]))$coef[2,3] )
 ```
 <br>
 
-### (stuck on ... not entirely sure correct) Visualize the relationship between the mean z-scores at the tag SNPs and the z-score at the causal SNP.
+### Visualize the relationship between the mean z-scores at the tag SNPs and the z-score at the causal SNP.
 ```{r,eval=TRUE}
 par( mfrow=c(2,2) )
 breaks = hist(c(0,zsC,zs),plot=F)$breaks
@@ -346,8 +369,6 @@ hist(zs[21:30],breaks=breaks, col=3, main='Independent SNPs')
 abline(v=zsC)
 ```
 <br>
-
-## Quite stuck here (Date: 14/10)
 
 ### __BONUS: Perform LD score regression. First, calculate the LD scores. There should be M+1 of them.__
 ```{r, eval=TRUE}
@@ -363,12 +384,11 @@ length(ldscores) # M + 1 = 31 - correct number of ldscores
 <br>
 
 ### BONUS: Visualize LD score regression.
-```{r,eval=FALSE}
-# expected [chisq | ] = N h ^ 2 lj + N a + 1
-# https://www.nature.com/articles/ng.3211
-#chis = c( ?, ? )^2
-chis = c( 1, 2 )^2
-plot(ldscores[1:2], chis, ylab=expression(chi^2) )
+```{r,eval=TRUE}
+
+# chi squared test stat is zscore squared 
+chis = c( zs, zsC )^2
+plot(ldscores, chis, ylab=expression(chi^2) )
 #test for inflation
 lambdaGC = median(chis)/0.454
 lambdaGC
@@ -376,15 +396,15 @@ lambdaGC
 <br>
 
 ### BONUS: Estimate heritability.
-```{r,eval=FALSE}
-summary( lm( ? )$coef[2,1] * M/N
+```{r,eval=TRUE}
+adjust_chisq = chis - 1
+summary( lm(adjust_chisq ~ ldscores))$coef[2,1] * M/N
 ```
 <br>
 
 ### BONUS: What is the true heritability?
-```{r, eval=FALSE}
-# narrow sence: phenotypic variation / genotypic variation
-var(?) / var(sum())
+```{r, eval=TRUE}  
+var(ldscores) / var(adjust_chisq)
 ```
 
 
