@@ -1,0 +1,224 @@
+---
+title: 'Lab 2: Enrichment Analyses'
+subtitle: "BMI 206"
+author: "Isobel Beasley"
+date: "10/25/2021"
+output: html_document
+---
+<br>
+<br>
+
+Import needed packages and set a random number seed
+```{r, message=FALSE}
+#load packages
+library(regioneR)
+set.seed(10)
+```
+<br>
+
+Read in BED formatted region files: all tested regions and two sets of positives
+Note: these are in hg19 human genome assembly coordinates
+```{r}
+
+all=toGRanges(read.table(here::here(paste0("enrichment"),"all.bed"),
+                         sep="\t")
+              )
+
+hits1=toGRanges(read.table(here::here(paste0("enrichment"),"hits1.bed"),
+                           sep="\t")
+                )
+
+hits2=toGRanges(read.table(here::here(paste0("enrichment"),
+                                      "hits2.bed"),
+                           sep="\t")
+                )
+```
+<br>
+
+__Q1. How many regions are in hits1? How many in hits2?__ 
+```{r, eval=TRUE}
+summary(hits1) # 140 regions
+summary(hits2) # 322 regions
+```
+<br>
+
+__Q2. Are hits1 and hits2 proper subsets of all the tested regions? Check how many of each set overlaps a region in all.__
+```{r, eval=FALSE}
+summary(all)
+findOverlaps(hits1, all)
+findOverlaps(hits2, all)
+countOverlaps(hits1, all) |> sum()
+countOverlaps(hits2, all) |> sum()
+intersect(hits1, all) 
+intersect(hits2, all)
+```
+<br>
+
+The next few questions explore the overlap of genomic regions in hits1 and hits2.
+
+__Q3. How many regions overlap? How many regions are exactly identical?__
+```{r, eval=TRUE}
+intersect(hits1, hits2) # 6 regions overlap
+findOverlaps(hits1, hits2)
+subsetByOverlaps(hits1, hits2)
+subsetByOverlaps(hits2, hits1)
+```
+<br>
+
+__Q4. Generate a set of random genomic regions of the same size as hits1. Match these to the mean and sd of the genomic length of the hits1 regions.__ <br>
+- Do the random genomic regions overlap hits2 more or less than hits1 does? <br>
+- How much do the random genomic regions overlap all tested regions? <br>
+- Repeatedly generate genomic regions to compute a z-score for the overlap of hits1 with hits2 <br>
+- Use the set of overlaps with random regions to test the null hypothesis that hits2 overlaps hits1 more than expected compared to totally random regions <br> 
+- What is the smallest p-value you could have gotten? <br>
+- How do the results change with number of resamples? Random seed? <br>
+
+```{r,eval=TRUE}
+
+# Generate a set of random genomic regions of the same size as hits1.
+random_region1 <- randomizeRegions(hits1, 
+                                   genome = "hg19"
+                    )
+
+#  Do the random genomic regions overlap hits2 more or less than hits1 does?
+intersect(random_region1, hits1)
+intersect(random_region1, hits2)
+# the same - no overlap 
+
+# How much do the random genomic regions overlap all tested regions?
+intersect(random_region1, all)
+# no overlap
+
+# Repeatedly generate genomic regions to compute a z-score for the overlap of hits1 with hits2
+test_stats = overlapPermTest(hits1,
+                hits2,
+                alternative = "greater",
+                ntimes = 100)
+
+test_stats
+
+#  Use the set of overlaps with random regions to test the null hypothesis that hits2 overlaps hits1 more than expected compared to totally random region
+
+# p-value is
+
+# What is the smallest p-value you could have gotten?
+1 / (100 + 1)
+
+# How do the results change with number of resamples? Random seed?
+
+overlapPermTest(hits1,
+                hits2,
+                alternative = "greater",
+                ntimes = 10)
+
+overlapPermTest(hits1,
+                hits2,
+                alternative = "greater",
+                ntimes = 100)
+
+overlapPermTest(hits1,
+                hits2,
+                alternative = "greater",
+                ntimes = 10^5)
+
+```
+<br>
+
+__Q5. Repeat Q4 switching the roles of hits1 and hits2. Are conclusions similar?__
+```{r, eval=FALSE}
+# Generate a set of random genomic regions of the same size as hits2.
+random_region2 <- randomizeRegions(hits2, 
+                                   genome = "hg19"
+                    )
+
+#  Do the random genomic regions overlap hits1 more or less than hits2 does?
+intersect(random_region2, hits2)
+intersect(random_region2, hits1)
+
+# How much do the random genomic regions overlap all tested regions?
+intersect(random_region2, all)
+
+# Repeatedly generate genomic regions to compute a z-score for the overlap of hits2 with hits1
+test_stats = overlapPermTest(hits2,
+                hits1,
+                alternative = "greater",
+                ntimes = 100)
+
+test_stats
+
+
+```
+<br>
+
+__Q6. Create a random bootstrap sample of regions from all tested regions.__ <br>
+- Do these random regions overlap hits2 more or less than hits1 does? <br>
+- How does this test differ from the one in Q4? Look at the z-score and p-value. <br>
+
+```{r, eval=TRUE}
+
+# Create a random bootstrap sample of regions from all tested regions
+all_sample = sample(all, replace = TRUE)
+
+# Do these random regions overlap hits2 more or less than hits1 does?
+length(intersect(hits1, all_sample))
+length(intersect(hits2, all_sample))
+# as absolute value, overlap hits2 more, as a proportion of values hit1 more
+
+# How does this test differ from the one in Q4? Look at the z-score and p-value.
+overlapPermTest()
+```
+<br>
+
+__Q7. Repeat Q6 switching the role of hits1 and hits2. Are conclusions similar?__
+```{r,eval=FALSE}
+
+```
+<br>
+
+__Q8. Which null distribution would you use in your own research and why?__
+<br>
+
+
+<br>
+The next few questions involve downloading genomics data. You can choose sets of regions, e.g, gene annotation, ChIPseq, RNAseq, ATACseq, GWAS SNPs
+
+
+<br>
+
+__Q9. Using data you download, can you infer what function was tested in the assay that discovered hits1 and hits2? Choose data sets that will be informative about candidate functions. Compute overlaps or mean values of the downloaded data for the union of hits1 and hits2__
+```{r,eval=FALSE}
+?
+```
+
+<br>
+__Guess what type of genomic element these hits are (i.e., what assay was performed))__
+
+<br>
+<br>
+
+__BONUS Q10. Do you think hits1 and hits2 function in the same cell type?__ <br>
+- Build on your analysis in Q9 by separately testing overlaps with hits1 and hits2. Choose datasets that are from several different cell types <br>
+<br>
+
+__BONUS Q11: Try matching the random regions more closely to regions in hits1__ <br>
+- On what variables will you match them? e.g., spacing, chromosome, GC-content, distance to nearest gene, masking <br>
+- How does matching affect the z-score and p-value? <br>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
