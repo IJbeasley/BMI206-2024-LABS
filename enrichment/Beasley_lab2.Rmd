@@ -9,7 +9,7 @@ output: html_document
 <br>
 
 Import needed packages and set a random number seed
-```{r, message=FALSE}
+```{r set_up, message=FALSE, warning = FALSE}
 #load packages
 library(regioneR)
 set.seed(10)
@@ -18,54 +18,75 @@ set.seed(10)
 
 Read in BED formatted region files: all tested regions and two sets of positives
 Note: these are in hg19 human genome assembly coordinates
-```{r}
+```{r load_data, message=FALSE, warning = FALSE}
 
 all=toGRanges(read.table(here::here(paste0("enrichment"),"all.bed"),
-                         sep="\t")
+                         sep="\t"),
+              genome = "hg19"
               )
 
+#names(all) = NULL
+
 hits1=toGRanges(read.table(here::here(paste0("enrichment"),"hits1.bed"),
-                           sep="\t")
+                           sep="\t"),
+                genome = "hg19"
                 )
+
+#names(hits1) = NULL
 
 hits2=toGRanges(read.table(here::here(paste0("enrichment"),
                                       "hits2.bed"),
-                           sep="\t")
+                           sep="\t"),
+                genome = "hg19"
                 )
+
+#names(hits2) = NULL
+
 ```
 <br>
 
-__Q1. How many regions are in hits1? How many in hits2?__ 
-```{r, eval=TRUE}
-summary(hits1) # 140 regions
-summary(hits2) # 322 regions
+## __Q1. How many regions are in hits1? How many in hits2?__ 
+```{r q1, eval=TRUE}
+length(hits1) # number of regions in hits1
+length(hits2) # number of regions in hits2
 ```
 <br>
 
-__Q2. Are hits1 and hits2 proper subsets of all the tested regions? Check how many of each set overlaps a region in all.__
-```{r, eval=FALSE}
-summary(all)
-findOverlaps(hits1, all)
-findOverlaps(hits2, all)
-countOverlaps(hits1, all) |> sum()
-countOverlaps(hits2, all) |> sum()
-intersect(hits1, all) 
-intersect(hits2, all)
+## __Q2. Are hits1 and hits2 proper subsets of all the tested regions? Check how many of each set overlaps a region in all.__
+```{r q2, eval=TRUE}
+
+length(all) # number of regions in all, is greater than the number in hits1 & hits2
+
+numOverlaps(hits1, all, count.once = T)  # number of regions in hits1 that overlap a region in all =  the number of regions in hits1
+subtractRegions(hits1, all) # there are no regions found in hits1, but not all 
+
+numOverlaps(hits2, all, count.once = T) #  number of regions in hits2 that overlap a region in all = the number of regions in hits2 
+subtractRegions(hits1, all) # there are no regions found in hits1, but not all 
+
+# In conclusion: hits1 & hits2 are proper subsets of all the tested regions 
+# And the number of regions in hits1, and hits2 that overlap a 
+# region in all is 140 and 322 respectively
+
 ```
-<br>
+
+<br> 
 
 The next few questions explore the overlap of genomic regions in hits1 and hits2.
 
-__Q3. How many regions overlap? How many regions are exactly identical?__
+
+## __Q3. How many regions overlap? How many regions are exactly identical?__
 ```{r, eval=TRUE}
 intersect(hits1, hits2) # 6 regions overlap
-findOverlaps(hits1, hits2)
-subsetByOverlaps(hits1, hits2)
-subsetByOverlaps(hits2, hits1)
+commonRegions(hits1, hits2) 
+
+identical(subsetByOverlaps(hits1, hits2), 
+          subsetByOverlaps(hits2, hits1)
+          ) # all 6 overlapping regions are exactly identical 
+
 ```
 <br>
 
-__Q4. Generate a set of random genomic regions of the same size as hits1. Match these to the mean and sd of the genomic length of the hits1 regions.__ <br>
+## __Q4. Generate a set of random genomic regions of the same size as hits1. Match these to the mean and sd of the genomic length of the hits1 regions.__ <br>
 - Do the random genomic regions overlap hits2 more or less than hits1 does? <br>
 - How much do the random genomic regions overlap all tested regions? <br>
 - Repeatedly generate genomic regions to compute a z-score for the overlap of hits1 with hits2 <br>
@@ -73,59 +94,130 @@ __Q4. Generate a set of random genomic regions of the same size as hits1. Match 
 - What is the smallest p-value you could have gotten? <br>
 - How do the results change with number of resamples? Random seed? <br>
 
-```{r,eval=TRUE}
+
+```{r q4_pt1,eval=TRUE}
 
 # Generate a set of random genomic regions of the same size as hits1.
 random_region1 <- randomizeRegions(hits1, 
                                    genome = "hg19"
                     )
 
+
+# check these random genomic regions have the same mean and sd 
+# sequence length of the hits1 regions
+mean(width(random_region1)) == mean(width(hits1))
+sd(width(random_region1)) == sd(width(hits1))
+```
+
+
+```{r q4_p2}
 #  Do the random genomic regions overlap hits2 more or less than hits1 does?
 intersect(random_region1, hits1)
 intersect(random_region1, hits2)
 # the same - no overlap 
 
+
+```
+
+```{r q4_3}
 # How much do the random genomic regions overlap all tested regions?
 intersect(random_region1, all)
 # no overlap
 
+```
+
+```{r q4_4}
 # Repeatedly generate genomic regions to compute a z-score for the overlap of hits1 with hits2
-test_stats = overlapPermTest(hits1,
-                hits2,
-                alternative = "greater",
-                ntimes = 100)
+perm_res = overlapPermTest(A = hits1,
+                           B = hits2,
+                           alternative = "greater",
+                           min.parallel = 10,
+                           ntimes = 100)
 
-test_stats
+summary(perm_res) # see z-score here: 
 
+
+```
+
+```{r q4_5}
 #  Use the set of overlaps with random regions to test the null hypothesis that hits2 overlaps hits1 more than expected compared to totally random region
+summary(perm_res) 
 
-# p-value is
+# p-value is small (p < 0.05, & ~minimum p-value possible) so, hits2 overlaps hits1 more than totally random regions
 
+```
+
+```{r q4_6}
 # What is the smallest p-value you could have gotten?
+# 1/ (n permutations + 1)
 1 / (100 + 1)
 
-# How do the results change with number of resamples? Random seed?
 
+```
+
+###  How do the results change with number of resamples? 
+
+```{r q4_7, eval = FALSE}
+# Change with the number of resamples: 
 overlapPermTest(hits1,
                 hits2,
                 alternative = "greater",
+                min.parallel = 10,
                 ntimes = 10)
 
 overlapPermTest(hits1,
                 hits2,
                 alternative = "greater",
+                min.parallel = 10,
                 ntimes = 100)
 
 overlapPermTest(hits1,
                 hits2,
                 alternative = "greater",
+                min.parallel = 10,
                 ntimes = 10^5)
 
+
 ```
+
+# Add comment here
+
+###  How do the results change with changing seed number?
+
+```{r q4_8, eval = FALSE}
+# change with random seed: 
+set.seed(99)
+
+overlapPermTest(hits1,
+                hits2,
+                alternative = "greater",
+                min.parallel = 10,
+                ntimes = 100)
+
+set.seed(250)
+
+overlapPermTest(hits1,
+                hits2,
+                alternative = "greater",
+                min.parallel = 10,
+                ntimes = 100)
+
+set.seed(400)
+
+overlapPermTest(hits1,
+                hits2,
+                alternative = "greater",
+                min.parallel = 10,
+                ntimes = 100)
+
+```
+
+# Add comment here 
 <br>
 
-__Q5. Repeat Q4 switching the roles of hits1 and hits2. Are conclusions similar?__
-```{r, eval=FALSE}
+## __Q5. Repeat Q4 switching the roles of hits1 and hits2. Are conclusions similar?__
+```{r q5, eval=TRUE}
+
 # Generate a set of random genomic regions of the same size as hits2.
 random_region2 <- randomizeRegions(hits2, 
                                    genome = "hg19"
@@ -134,27 +226,34 @@ random_region2 <- randomizeRegions(hits2,
 #  Do the random genomic regions overlap hits1 more or less than hits2 does?
 intersect(random_region2, hits2)
 intersect(random_region2, hits1)
+# the same - no overlap 
 
 # How much do the random genomic regions overlap all tested regions?
 intersect(random_region2, all)
+# just one overlap
 
 # Repeatedly generate genomic regions to compute a z-score for the overlap of hits2 with hits1
-test_stats = overlapPermTest(hits2,
+perm_res = overlapPermTest(hits2,
                 hits1,
                 alternative = "greater",
+                min.parallel = 10,
                 ntimes = 100)
 
-test_stats
+summary(perm_res) # see z-score here: 
+
+#  Use the set of overlaps with random regions to test the null hypothesis that hits1 overlaps hits2 more than expected compared to totally random region
+summary(perm_res) 
 
 
+# Overall, the conclusions are similar whether we consider the overlap of hits2 with hits1, or the overlap of hits2 with hits1
 ```
 <br>
 
-__Q6. Create a random bootstrap sample of regions from all tested regions.__ <br>
+## __Q6. Create a random bootstrap sample of regions from all tested regions.__ <br>
 - Do these random regions overlap hits2 more or less than hits1 does? <br>
 - How does this test differ from the one in Q4? Look at the z-score and p-value. <br>
 
-```{r, eval=TRUE}
+```{r q6, eval=FALSE}
 
 # Create a random bootstrap sample of regions from all tested regions
 all_sample = sample(all, replace = TRUE)
@@ -162,49 +261,268 @@ all_sample = sample(all, replace = TRUE)
 # Do these random regions overlap hits2 more or less than hits1 does?
 length(intersect(hits1, all_sample))
 length(intersect(hits2, all_sample))
-# as absolute value, overlap hits2 more, as a proportion of values hit1 more
+# as absolute value, overlap hits2 more, as a proportion of values hits1 more
 
 # How does this test differ from the one in Q4? Look at the z-score and p-value.
 overlapPermTest()
 ```
 <br>
 
-__Q7. Repeat Q6 switching the role of hits1 and hits2. Are conclusions similar?__
-```{r,eval=FALSE}
+# Add code here
+
+## __Q7. Repeat Q6 switching the role of hits1 and hits2. Are conclusions similar?__
+```{r q7,eval=FALSE}
 
 ```
 <br>
 
-__Q8. Which null distribution would you use in your own research and why?__
+# Add code here
+
+## __Q8. Which null distribution would you use in your own research and why?__
 <br>
 
 
 <br>
+# Add comment here 
+
 The next few questions involve downloading genomics data. You can choose sets of regions, e.g, gene annotation, ChIPseq, RNAseq, ATACseq, GWAS SNPs
 
 
 <br>
 
-__Q9. Using data you download, can you infer what function was tested in the assay that discovered hits1 and hits2? Choose data sets that will be informative about candidate functions. Compute overlaps or mean values of the downloaded data for the union of hits1 and hits2__
-```{r,eval=FALSE}
-?
+## __Q9. Using data you download, can you infer what function was tested in the assay that discovered hits1 and hits2? Choose data sets that will be informative about candidate functions. Compute overlaps or mean values of the downloaded data for the union of hits1 and hits2__
+
+```{r q9,eval=TRUE, message=FALSE, warning=FALSE}
+
+# let's start by using hg19 gene models - to determine where in
+# functional annotation our regions are
+
+library(GenomicDistributions)
+library(AnnotationHub) 
+library(ggplot2)
+
+
+un_h1_h2 = union(hits1, hits2)
+
+all_hit_partition = calcPartitionsRef(un_h1_h2,
+                                      "hg19",
+                                     bpProportion = T)
+
+plotPartitions(all_hit_partition) + 
+  labs(title = "Percentage of base pairs in regions of hits1 & hits2 across genomic annotations")
+
+# so mostly overlapping intergenic, and intronic regions
+# if these are functional sequences, then 
+# this is suggestive of enhancers 
+# let's confirm using a annotation file of enhancers
+
+ah = AnnotationHub()
+ah = ah[ah$genome == "hg19"]
+query(ah, "Enhancers")
+
+# download the vista enhancers dataset 
+vista_enhancers = ah[["AH5093"]]
+
+# visualize the overlap between vista enhancers and our all dataset 
+overlap_all_vista_plot = calcChromBinsRef(
+                                          GRangesList(Enhancers = vista_enhancers, 
+                                                      hits = un_h1_h2),
+                                          "hg19"
+)
+
+colors = c("#E69F00", 
+           "#56B4E9", 
+           "#009E73", 
+           "#F0E442")
+
+plot =plotChromBins(overlap_all_vista_plot,
+              plotTitle = "Genomic Distribution of hits, and Vista Enhancers")
+
+withr::with_options(
+  list(ggplot2.discrete.fill = colors), 
+  print(plot)
+)
+
+
+numOverlaps(un_h1_h2, vista_enhancers)
+findOverlaps(un_h1_h2,vista_enhancers)
+overlapRegions(un_h1_h2, vista_enhancers)
+
+permTest(A = un_h1_h2,
+         B = vista_enhancers,
+         universe = all,
+         evaluate.function = numOverlaps,
+         randomize.function = randomizeRegions,
+         min.parallel = 10,
+         alternative = "greater",
+                ntimes = 100)
+
 ```
 
+
+
+DNase hypersensitivity7,18, denoting regions of accessible chromatin commonly associated with regulator binding
+
+H3K27ac and H3K9ac, associated with increased activation of enhancer and promoter region
+
+
 <br>
-__Guess what type of genomic element these hits are (i.e., what assay was performed))__
+
+## __Guess what type of genomic element these hits are (i.e., what assay was performed))__
 
 <br>
 <br>
 
-__BONUS Q10. Do you think hits1 and hits2 function in the same cell type?__ <br>
+## __BONUS Q10. Do you think hits1 and hits2 function in the same cell type?__ 
+
+<br>
 - Build on your analysis in Q9 by separately testing overlaps with hits1 and hits2. Choose datasets that are from several different cell types <br>
 <br>
 
-__BONUS Q11: Try matching the random regions more closely to regions in hits1__ <br>
+```{r q10_cell_type}
+
+
+# function to find the base pair overlap from
+# one genomic ranges object (hit_gr)
+# to another ah_gr
+# as a percentage of the total number of 
+# base pairs in that genomic ranges object (hit_gr)
+
+overlap_prop = function(hit_gr,
+                        ah_gr,
+                        total_bp){
+  
+   non_overlap_bp = subtractRegions(hit_gr,
+                  ah_gr
+                  )
+  
+  non_overlap_bp = width(non_overlap_bp) |> sum()
+  
+  overlap_bp = total_bp - non_overlap_bp
+  
+  overlap_prop = overlap_bp / total_bp
+  
+  return(overlap_prop)
+  
+}
+
+# given annotation hub name, calculate overlap
+# as a base pair proportion 
+# for two other genomic ranges (hit_gr1, hit_gr2)
+# as proportion of overlapping bases
+
+ah_overlap_prop = function(ah_name, 
+                          hit_gr1 = hits1,
+         hit_gr2 = hits2,
+         total_bp_hits1 = sum(width(hit_gr1)),
+         total_bp_hits2 = sum(width(hit_gr2))
+         ){
+  
+  ah_gr = ah[[ah_name]]
+  
+  prop1 = overlap_prop(hit_gr1, ah_gr, total_bp_hits1)
+  
+  prop2 = overlap_prop(hit_gr2, ah_gr, total_bp_hits2)
+  
+  return(c(prop1, prop2))
+  
+ 
+}
+
+
+# so epigenetic mark associated with 
+# enhancer regions is 
+# H3 lysine 4 monomethylation (H3K4me1)
+
+# so across a number of tissue and cell samples
+# in the epigenetic road map
+# let's calculate the overlap between
+# hits1 and hits2 with these marks 
+
+tissues = c(
+  # brain 
+  fetal_brain = "AH42298",
+  hippocampus = "AH41976",
+  substantia_nigra = "AH42021",
+  anterior_caudate = "AH29359",
+  # heart 
+  fetal_heart = "AH45775",
+  left_ventricle = "AH29554",
+fetal_large_intestine = "AH43342",
+fetal_adrenal_gland = "AH43336",
+naive_cd4 = "AH42135",
+condrocytes = "AH42202",
+duodenum = "AH42270",
+
+esophagus = "AH42628",
+vista_enhancers = "AH5093"
+)
+
+overlap_prop_test = purrr::map(tissues,
+           ah_overlap_prop) 
+
+overlap_prop_df = as.data.frame(overlap_prop_test)
+
+overlap_prop_df
+
+cor(t(overlap_prop_df),
+    method = "spearman"
+    )
+
+
+```
+
+## __BONUS Q11: Try matching the random regions more closely to regions in hits1__ <br>
 - On what variables will you match them? e.g., spacing, chromosome, GC-content, distance to nearest gene, masking <br>
 - How does matching affect the z-score and p-value? <br>
 
+```{r q_11}
 
+# I will match on masking: 
+# masking (to account for any bias in e.g. repetition rich)
+mask = ah[["AH99002"]]
+
+# swScore, milliDiv, milliDel, milliIns
+library(annotatr)
+
+# region length
+hits1$length = width(hits1)
+
+# high vs low activity of enhancer / promoter seq (account for bias in ChiP-seq, https://pubmed.ncbi.nlm.nih.gov/24173036/)
+query(ah, c("E095", "H3k27ac"))
+# doing it for one the most relevant/highly overlapping 
+# tissue type from 10 (left ventricle, heart tissue)
+reg_active = ah[["AH29557"]]
+
+# mcols(reg_active) = mcols(reg_active) |> 
+#                     as.data.frame() |> 
+#                     dplyr::select("signalValue")
+
+right_vent = c("vent_epi" = "AH29557")
+
+# annotations = build_ah_annots(genome, 
+#                               right_vent, 
+#                               annotation_class = "H3k27ac")
+
+# annotations = build_annotations(genome = 'hg19', annotations = reg_active)
+# 
+# dm_annotated = annotate_regions(
+#                             regions = hits1,
+#                             annotations = annotations,
+#     ignore.strand = TRUE,
+#     quiet = FALSE)
+
+library(nullranges)
+
+x = calcChromBinsRef(hits1,
+                     "hg19"
+)
+
+plotChromBins(x)
+
+# matching random region
+
+```
 
 
 
