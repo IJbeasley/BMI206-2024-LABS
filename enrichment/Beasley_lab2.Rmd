@@ -157,25 +157,25 @@ summary(perm_res)
 
 ###  How do the results change with number of resamples? 
 
-```{r q4_7, eval = FALSE}
-# Change with the number of resamples: 
-overlapPermTest(hits1,
+```{r q4_7, eval = TRUE}
+# Change the number of resamples: 
+perm_res_sam10 = overlapPermTest(hits1,
                 hits2,
                 alternative = "greater",
                 min.parallel = 10,
                 ntimes = 10)
 
-overlapPermTest(hits1,
+perm_res_sam50 = overlapPermTest(hits1,
                 hits2,
                 alternative = "greater",
                 min.parallel = 10,
-                ntimes = 100)
+                ntimes = 50)
 
-overlapPermTest(hits1,
+perm_res_sam1000 = overlapPermTest(hits1,
                 hits2,
                 alternative = "greater",
                 min.parallel = 10,
-                ntimes = 10^5)
+                ntimes = 10^4)
 
 
 ```
@@ -359,7 +359,7 @@ permTest(A = un_h1_h2,
 
 ```
 
-
+### Add comment here
 
 DNase hypersensitivity7,18, denoting regions of accessible chromatin commonly associated with regulator binding
 
@@ -370,6 +370,8 @@ H3K27ac and H3K9ac, associated with increased activation of enhancer and promote
 
 ## __Guess what type of genomic element these hits are (i.e., what assay was performed))__
 
+
+### Add comment here
 <br>
 <br>
 
@@ -472,18 +474,41 @@ cor(t(overlap_prop_df),
 
 ```
 
-## __BONUS Q11: Try matching the random regions more closely to regions in hits1__ <br>
+
+### Add comment here
+
+## __BONUS Q11: Try matching the random regions more closely to regions in hits1__ 
+<br>
 - On what variables will you match them? e.g., spacing, chromosome, GC-content, distance to nearest gene, masking <br>
 - How does matching affect the z-score and p-value? <br>
 
-```{r q_11}
+```{r q_11, message=FALSE, warning=FALSE, eval = FALSE}
 
 # I will match on masking: 
 # masking (to account for any bias in e.g. repetition rich)
-mask = ah[["AH99002"]]
+mask_ah = ah[["AH99002"]]
+library(annotatr)
+
+mask = c("mask" = "AH99002")
+
+build_ah_annots(genome = "hg19",
+                mask, 
+                annotation_class = "ucsc")
+
+annotations = build_annotations(genome = 'hg19', 
+                                annotations = c('hg19_ucsc_mask')
+)
+
+hits1_annotated = annotate_regions(
+                            regions = hits1,
+                            annotations = annotations,
+    ignore.strand = TRUE,
+    quiet = FALSE)
+
+subsetByOverlaps(mask_ah, mcols(hits1_annotated))
+
 
 # swScore, milliDiv, milliDel, milliIns
-library(annotatr)
 
 # region length
 hits1$length = width(hits1)
@@ -494,23 +519,26 @@ query(ah, c("E095", "H3k27ac"))
 # tissue type from 10 (left ventricle, heart tissue)
 reg_active = ah[["AH29557"]]
 
-# mcols(reg_active) = mcols(reg_active) |> 
-#                     as.data.frame() |> 
-#                     dplyr::select("signalValue")
-
 right_vent = c("vent_epi" = "AH29557")
 
-# annotations = build_ah_annots(genome, 
-#                               right_vent, 
-#                               annotation_class = "H3k27ac")
+build_ah_annots(genome = "hg19",
+                right_vent,
+                annotation_class = "H3k27ac")
 
-# annotations = build_annotations(genome = 'hg19', annotations = reg_active)
+annotations = build_annotations(genome = 'hg19', 
+                                annotations = c('hg19_H3k27ac_vent_epi')
+)
 # 
-# dm_annotated = annotate_regions(
-#                             regions = hits1,
-#                             annotations = annotations,
-#     ignore.strand = TRUE,
-#     quiet = FALSE)
+hits1_annotated = annotate_regions(
+                            regions = hits1,
+                            annotations = annotations,
+    ignore.strand = TRUE,
+    quiet = FALSE)
+
+subsetByOverlaps(reg_active, mcols(hits1_annotated))
+
+regioneR::toGRanges(mcols(hits1_annotated))
+toGRanges()
 
 library(nullranges)
 
@@ -523,6 +551,9 @@ plotChromBins(x)
 # matching random region
 
 ```
+
+
+### Add code here
 
 
 
