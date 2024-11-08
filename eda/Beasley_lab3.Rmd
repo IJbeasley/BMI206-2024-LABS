@@ -42,6 +42,7 @@ The *sv* matrix object reports counts of five types of structural variants (SV) 
 ```{r eval=TRUE, message=FALSE, warning=FALSE}
 # ANSWER 1.1
 library(ggplot2)
+library(viridis)
 library(tidyr)
 
 sv_plot = sv |> 
@@ -56,17 +57,22 @@ sv_plot |>
   ggplot(aes(x=group, y= counts, fill = group)) + 
   geom_boxplot() + 
   theme_bw() + 
-  scale_fill_brewer(name = "Type of SV", palette = "Dark2")
+  labs(x = " ", y = "Variant Counts (per individual)") + 
+  scale_fill_brewer(name = "Type of Structural Variant", palette = "Dark2")
 
 ```
+
+**Conclusions:** Yes, all distributions of the counts of structural variants appear to have outliers. All of these outliers are above the mean, indicating the distributions are all right skewed. 
 
 
 **QUESTION 1.2** Which SV types are most frequent? Least frequent?
 
 ```{r eval=TRUE}
 # ANSWER 1.2
-colSums(sv)
+sort(colSums(sv), decreasing = T)
 ```
+
+**Conclusions:** Deletions are the most frequent type of structural variant. Insertions are the least frequent type of structural variant. 
 
 ### Question 2: Is this normal?
 
@@ -89,6 +95,8 @@ qqline(sv[, "deletions"])
 }
 ```
 
+From the above qqplot, it does not appear that deletions are normally distributed as the empircal quantiles of the count of deletions is not close to the expected quantiles for a normal distribution (i.e. the above line). At theorectical quantitles <-1, and  >1, the points in the qqplot are much above the line.
+
 ### Question 3: It's not normal
 
 Data that are not normally distributed can be coerced towards a normal distribution by transforming the data. How could you transform the distribution of deletions so that it's closer to normal? 
@@ -106,27 +114,42 @@ qqline(log_del)
 }
 ```
 
+**Conclusions:** Yes, the log transformation made the distribution of the count of deletions closer to a normal distribution. 
+
 
 ### Question 4: We belong together
 
 Structural variations arise from DNA damage that is not repaired. By analyzing tumor genomes, we can figure out the kind of DNA damage that occurred by studying the patterns of SVs.
 
-The null model is that there is no relationship between the number of any type of SV. Alternatively, there might be an association between some of the SV types, suggesting somthing in common about their etiology. 
+The null model is that there is no relationship between the number of any type of SV. Alternatively, there might be an association between some of the SV types, suggesting something in common about their etiology. 
 
 **QUESTION 4.1** Calculate pairwise correlation between all five types of SV and plot the resulting correlation coefficients as a heat map. Try both Pearson correlation (the parametric default method in R) and non-parametric Spearman rank correlation, to see if it matters. 
 
 *Hint for plotting a simple correlation heatmap, where the matrix X contains the values to plot in the heatmap:*
 
-```{r eval=FALSE}
+```{r eval=TRUE}
+X = round(cor(sv), digits = 2)
+
 XTidy = melt( X, value.name="val", varnames = c("x", "y") )
-ggplot( XTidy, aes( x, y ) ) + 
+
+ggplot(XTidy, aes( x, y ) ) + 
      geom_tile( aes( fill = val ) ) + 
-     geom_text( aes( label = val ) ) 
+     geom_text( aes( label = val ) ) + 
+  labs(x = "", y = " " , title = "Correlation between counts of different variants") + 
+  scale_fill_viridis(name = "Correlation (r^2)", option = "D")
 ```
 
 
-```{r eval=FALSE}
-# ANSWER 4.1
+```{r eval=TRUE}
+X = round(cor(sv, method = "spearman"), digits = 2)
+
+XTidy = melt( X, value.name="val", varnames = c("x", "y") )
+
+ggplot(XTidy, aes( x, y ) ) + 
+     geom_tile( aes( fill = val ) ) + 
+     geom_text( aes( label = val ) ) + 
+    labs(x = "", y = " " , title = "Correlation between counts of different variants") + 
+    scale_fill_viridis(name = "Correlation (r^2)", option = "D")
 ```
 
 
@@ -141,6 +164,12 @@ ggplot( XTidy, aes( x, y ) ) +
 ```{r eval=FALSE}
 # ANSWER 4.3
 ```
+
+Some individuals have 
+
+- outlier impact
+- non-normal impact
+
 
 
 ### Question 5: Outliers of interest
@@ -170,6 +199,9 @@ sv |>
   theme_bw()
 
 ```
+**Conclusions:** From the above two graphs, the assumption that the numbers of mutations counted in each individual are somewhat correlated across structural variant types appears to hold.  
+
+However, there are some outliers to this trend. In the first graph, we can see some individuals in the top left have a relatively small number of inversions (<~110) but a high number of duplication mutations (>350). Additionally, in the second graph, we can see that some individuals (top left) in this study have a high number of deletion mutations (>200) despite only having a relatively low number of inversions (<100). 
 
 ### Question 6: Why the duplicates? Why the duplicates?
 
@@ -209,6 +241,8 @@ data.frame(wilcox_pval = test_pval,
   theme_bw()
 
 ```
+*Conclusions*: The most significant gene where gene inactivation is associated with an increased number of duplication mutations is CDK12; this strongest hit is thus worthy of further investigation. 
+
 
 ### Question 7: Why so many ~~deletions~~?
 
@@ -249,6 +283,9 @@ plot( effect_size, logp, las=1,
       xlab="change in deletions associated with mutation")
 text( effect_size, logp + 0.25, gene_names ) # show gene names on the plot
 ```
+
+
+**Conclusions:** Yes, the above volcano plot nominates inactivation of BRAC2 as associated with large numbers of deletions. 
 
 ### **QUESTION 7.2 (BONUS)** 
 
