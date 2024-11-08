@@ -2,7 +2,7 @@
 title: 'Lab 3: Exploratory Data Analysis'
 subtitle: "BMI 206"
 author: "Isobel Beasley"
-date: "_Put Due Date Here_"
+date: "8th November 2024"
 output: html_document
 ---
 
@@ -39,7 +39,7 @@ The *sv* matrix object reports counts of five types of structural variants (SV) 
 
 **QUESTION 1.1**: Plot a summary of the distributions for each type of SV individually. Do any of the distributions have outliers, defined as "values that exceed the whiskers of a boxplot"? 
 
-```{r eval=TRUE}
+```{r eval=TRUE, message=FALSE, warning=FALSE}
 # ANSWER 1.1
 library(ggplot2)
 library(tidyr)
@@ -154,8 +154,21 @@ Let's drill down on two contrasting pairs of SVs:
 
 Samples that deviate from a relationship like this might be of particular interest.
 
-```{r eval=FALSE}
+```{r eval=TRUE}
 # ANSWER 5.1
+sv |> 
+  ggplot(aes(x=inversions, y=duplications)) + 
+  geom_smooth(method = "lm", se = FALSE, formula = y~x) + 
+  geom_point() + 
+  theme_bw()
+
+
+sv |> 
+  ggplot(aes(x=inversions, y =deletions)) + 
+  geom_smooth(method = "lm", se = FALSE, formula = y~x) + 
+  geom_point() + 
+  theme_bw()
+
 ```
 
 ### Question 6: Why the duplicates? Why the duplicates?
@@ -166,8 +179,35 @@ The *mut* matrix that you loaded contains one row for each sample and one column
 
 **QUESTION 6.1** We'll test the hypothesis that tumors with a particular gene inactivation acquire a lot more duplications than tumors lacking that inactivation. Test this hypothesis by performing a Wilcoxon test comparing the number of duplicates in tumors with *vs.* without mutation in each gene. Create a barplot of -log10( *p* ) and nominate the strongest hit as worthy of further investigation.
 
-```{r eval=FALSE}
+```{r eval=TRUE}
 # ANSWER 6.1
+
+test_pval = vector()
+
+for(gene_id in 1:ncol(mut)){
+  
+  with_mut = mut[, gene_id]
+  
+  test_res =
+    wilcox.test(x = sv[with_mut, "duplications"],
+              y = sv[!with_mut, "duplications"],
+                  alternative = "greater" )
+  
+  print(test_res)
+  
+  test_pval[gene_id] = test_res$p.value
+  
+}
+
+data.frame(wilcox_pval = test_pval,
+           gene = as.factor(names(mut))) |> 
+  dplyr::mutate(log_pval = -log(wilcox_pval, base = 10)) |> 
+  ggplot(aes(group = gene, x= gene, y=log_pval)) + 
+  geom_bar(stat = "identity") + 
+  labs(x = "Inactivated Gene",
+       y = "-log10(Wilcox P-value)") + 
+  theme_bw()
+
 ```
 
 ### Question 7: Why so many ~~deletions~~?
@@ -176,10 +216,32 @@ Now let's take a close look at deletions. Look at the scatter plot you made comp
 
 **QUESTION 7.1** You might hypothesize that tumors that have inactivated a DNA repair gene harbor a lot more deletions than normal tumors. Test this hypothesis by performing a Wilcox test comparing the number of deletions in tumors with *vs.* without mutation in each gene. This time, instead of a barplot, create a volcano plot to compare the difference in means (as the effect) vs. the -log10(*p*) as the statistical strength. Does this analysis nominate any gene as associated with large numbers of deletions?
 
-```{r eval=FALSE}
+```{r eval=TRUE}
 # ANSWER 7.1
-effect_size = ?
-logp = ?
+test_pval = vector()
+test_effect_size = vector()
+
+for(gene_id in 1:ncol(mut)){
+  
+  with_mut = mut[, gene_id]
+  
+  test_res =
+    wilcox.test(x = sv[with_mut, "deletions"],
+              y = sv[!with_mut, "deletions"],
+                  alternative = "greater",
+                   conf.int = T)
+  
+  print(test_res)
+  
+  test_pval[gene_id] = test_res$p.value
+  test_effect_size[gene_id] = test_res$estimate
+  
+}
+
+
+effect_size =  test_effect_size
+logp = -log(test_pval, base = 10)
+
 gene_names = dimnames(mut)[[2]]
 plot( effect_size, logp, las=1, 
       xlim=c(-250,250), 
@@ -188,10 +250,40 @@ plot( effect_size, logp, las=1,
 text( effect_size, logp + 0.25, gene_names ) # show gene names on the plot
 ```
 
-**QUESTION 7.2 (BONUS)** Re-run the test you performed in problem 7.1, using a *t test* rather than a Wilcoxon test. Explain why these tests have different performance and produce different results. Discuss the difference between ranking candidates based on *P* value and based on a combination of *P* value and effect size.
+### **QUESTION 7.2 (BONUS)** 
 
-```{r eval=FALSE}
-# ANSWER 7.2
+Re-run the test you performed in problem 7.1, using a *t test* rather than a Wilcoxon test. Explain why these tests have different performance and produce different results. Discuss the difference between ranking candidates based on *P* value and based on a combination of *P* value and effect size.
+
+```{r eval=TRUE}
+test_pval = vector()
+test_effect_size = vector()
+
+for(gene_id in 1:ncol(mut)){
+  
+  with_mut = mut[, gene_id]
+  
+  test_res =
+    t.test(x = sv[with_mut, "deletions"],
+              y = sv[!with_mut, "deletions"],
+                  alternative = "greater")
+  
+  print(test_res)
+  
+  test_pval[gene_id] = test_res$p.value
+  test_effect_size[gene_id] = test_res$estimate
+  
+}
+
+
+effect_size =  test_effect_size
+logp = -log(test_pval, base = 10)
+
+gene_names = dimnames(mut)[[2]]
+plot( effect_size, logp, las=1, 
+      xlim=c(-250,250), 
+      ylim=c(0,7),
+      xlab="change in deletions associated with mutation")
+text( effect_size, logp + 0.25, gene_names ) # show gene names on the plot
 ```
 
 
