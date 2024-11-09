@@ -41,10 +41,13 @@ The *sv* matrix object reports counts of five types of structural variants (SV) 
 
 ```{r eval=TRUE, message=FALSE, warning=FALSE}
 # ANSWER 1.1
+
+# packages for plotting
 library(ggplot2)
 library(viridis)
 library(tidyr)
 
+# structure data in form needed for ggplot
 sv_plot = sv |> 
           tibble::rownames_to_column("id") |>  
           tidyr::pivot_longer(data = _, 
@@ -62,7 +65,7 @@ sv_plot |>
 
 ```
 
-**Answer (1.1):** Yes, all distributions of the counts of structural variants appear to have outliers. All of these outliers are above the mean, indicating the distributions are all right skewed. 
+<span style="color:#B22222"> **Answer (1.1):** </span> Yes, all distributions of the counts of structural variants appear to have outliers. All of these outliers are above the mean, indicating the distributions are all right skewed. 
 
 <br>
 <br>
@@ -71,11 +74,14 @@ sv_plot |>
 
 ```{r eval=TRUE}
 # ANSWER 1.2
-sort(colSums(sv), decreasing = T)
+sort(colSums(sv), decreasing = T) # total number of each SV
+sort(colMeans(sv), decreasing = T) # average number of each svc
+sort(apply(sv, 2, median), decreasing = T) # median number of each sv
 ```
 
-**Answer (1.2):** Deletions are the most frequent type of structural variant. Insertions are the least frequent type of structural variant. 
+<span style="color:#B22222">**Answer (1.2):**</span> Deletions and translations are the most frequent type of structural variant (mean = 100.85, 97.53 respectively) and insertions are the least frequent type of structural variant (mean = 8.69).
 
+<br>
 <br>
 <br>
 
@@ -100,7 +106,7 @@ qqline(sv[, "deletions"])
 }
 ```
 
-**Answer (2.1):** From the above plot, it does not appear that the number of deletion variants is normally distributed. The empirical quantiles of the count of deletions are not close to the expected quantiles for a normal distribution (i.e., near the line). In particular, at theoretical standard normal quantities <-1 and  >1, the points in the above Q-Q plot are much higher than the line.
+<span style="color:#B22222">**Answer (2.1):**</span> From the above plot, it does not appear that the number of deletion variants is normally distributed. The empirical quantiles of the count of deletions are not close to the expected quantiles for a normal distribution (i.e., near the line). In particular, at theoretical standard normal quantities <-1 and  >1, the points in the above Q-Q plot are much higher than the line.
 
 <br>
 <br>
@@ -122,7 +128,7 @@ qqline(log_del)
 }
 ```
 
-**Answer:** Yes, the log transformation made the distribution of the number of deletion variants per individual more similar to a normal distribution. 
+<span style="color:#B22222">**Answer (3.1):**</span> Yes, the log transformation made the distribution of the number of deletion variants per individual more similar to a normal distribution. 
 
 <br>
 <br>
@@ -138,6 +144,7 @@ The null model is that there is no relationship between the number of any type o
 *Hint for plotting a simple correlation heatmap, where the matrix X contains the values to plot in the heatmap:*
 
 ```{r eval=TRUE}
+# calculate pairwise pearson correlation
 X = round(cor(sv), digits = 2)
 
 XTidy = melt( X, value.name="val", varnames = c("x", "y") )
@@ -145,12 +152,13 @@ XTidy = melt( X, value.name="val", varnames = c("x", "y") )
 ggplot(XTidy, aes( x, y ) ) + 
      geom_tile( aes( fill = val ) ) + 
      geom_text( aes( label = val ) ) + 
-  labs(x = "", y = " " , title = "Correlation between counts of different variants") + 
-  scale_fill_viridis(name = "Correlation (r^2)", option = "D")
+  labs(x = "", y = " " , title = "Correlation (Spearman) between counts of different variants") + 
+  scale_fill_viridis(name = "Pearson \n (r^2)", option = "D")
 ```
 
 
 ```{r eval=TRUE}
+# calculate spearman rank correlation
 X = round(cor(sv, method = "spearman"), digits = 2)
 
 XTidy = melt( X, value.name="val", varnames = c("x", "y") )
@@ -158,8 +166,8 @@ XTidy = melt( X, value.name="val", varnames = c("x", "y") )
 ggplot(XTidy, aes( x, y ) ) + 
      geom_tile( aes( fill = val ) ) + 
      geom_text( aes( label = val ) ) + 
-    labs(x = "", y = " " , title = "Correlation between counts of different variants") + 
-    scale_fill_viridis(name = "Correlation (r^2)", option = "D")
+    labs(x = "", y = " " , title = "Correlation (Spearman) between counts of different variants") + 
+    scale_fill_viridis(name = "Spearman's \n rank \n (r^2)", option = "D")
 ```
 
 <br>
@@ -171,7 +179,7 @@ ggplot(XTidy, aes( x, y ) ) +
 # ANSWER 4.2
 ```
 
-**Answer:** Duplications and inversions are the types of structural variants that most strongly correlated with each other. 
+<span style="color:#B22222">**Answer (4.1):**</span> Duplications and inversions are the types of structural variants that most strongly correlated with each other. 
 
 The correlation data plotted above appear to be inconsistent with the null model of there being no relationship between the number of any type of structural variants. Each category of variants is positively correlated with each other, at least weakly so (>=0.12 Pearson, >=0.23 Spearman) but in some cases moderate-strongly so (e.g., Spearman rank correlation between duplication and deletions, 0.66). Thus, especially when we consider the biological reasons to expect the number of variants of each given type to be correlated (e.g., if a DNA repair mechanism is non or less functional in a patient, then we would expect them to have increased numbers of structural mutations of many different sites), it is worth testing whether this null hypothesis truly holds. 
 
@@ -185,7 +193,7 @@ The correlation data plotted above appear to be inconsistent with the null model
 # ANSWER 4.3
 ```
 
-**Answer:** The observed correlation values are so different due to the properties of the structural variant count distributions. For instance, unlike Spearman's rank, the Pearson correlation method assumes that data is normally distributed data. However, as shown in questions 1 & 2, this assumption of normally distributed data is inconsistent with the distribution we observe for the number of deletions and, most likely, for all other structural variants. Additionally, outliers in data are likely to disproportionally impact the estimated correlation when we apply Pearson's versus Spearman's methods. Thus, the fact that we observe many outliers in the boxplots in question 1 suggests that Pearson's and Spearman's rank correlation methods would produce different results. 
+<span style="color:#B22222">**Answer (4.3):**</span> The observed correlation values are so different due to the properties of the structural variant count distributions. For instance, unlike Spearman's rank, the Pearson correlation method assumes that data is normally distributed data. However, as shown in questions 1 & 2, this assumption of normally distributed data is inconsistent with the distribution we observe for the number of deletions and, most likely, for all other structural variants. Additionally, outliers in data are likely to disproportionally impact the estimated correlation when we apply Pearson's versus Spearman's methods. Thus, the fact that we observe many outliers in the boxplots in question 1 suggests that Pearson's and Spearman's rank correlation methods would produce different results. 
 
 Overall, the factors likely to be driving the differences between the two estimated correlations are the right skew and count-based nature of the data and the fact that some individuals have atypically large counts of some structural variants (i.e., outliers). 
 
@@ -224,7 +232,8 @@ sv |>
   theme_bw()
 
 ```
-**Answer:** From the above two graphs, the assumption that the numbers of mutations counted in each individual are somewhat correlated across structural variant types appears to hold.  
+
+<span style="color:#B22222">**Answer (5.1):**</span> From the above two graphs, the assumption that the numbers of mutations counted in each individual are somewhat correlated across structural variant types appears to hold.  
 
 However, there are some outliers to this trend. In the first graph, we can see some individuals in the top left have a relatively small number of inversions (<~110) but a high number of duplication mutations (>350). Additionally, in the second graph, we can see that some individuals (top left) in this study have a high number of deletion mutations (>200) despite only having a relatively low number of inversions (<100). 
 
@@ -243,22 +252,29 @@ The *mut* matrix that you loaded contains one row for each sample and one column
 ```{r eval=TRUE}
 # ANSWER 6.1
 
+# Initialize a vector to store p-values from the Wilcoxon tests
 test_pval = vector()
 
+# Loop over each gene 
 for(gene_id in 1:ncol(mut)){
   
+  # Select rows (samples) with a biallelic inactivation for the current gene
   with_mut = mut[, gene_id]
   
-  test_res =
-    wilcox.test(x = sv[with_mut, "duplications"],
-              y = sv[!with_mut, "duplications"],
-                  alternative = "greater" )
+  # Perform Wilcoxon test 
+  test_res = wilcox.test(
+    x = sv[with_mut, "duplications"], # Duplications in samples with gene inactivation
+    y = sv[!with_mut, "duplications"], # Duplications in samples without gene inactivation
+    #alternative = "greater" # Hypothesis: tumors with gene inactivation have more duplications
+  )
   
+  # Print the results of the Wilcoxon test for each gene
   print(test_res)
   
+  # Store the p-value of the test for each gene
   test_pval[gene_id] = test_res$p.value
-  
 }
+
 
 data.frame(wilcox_pval = test_pval,
            gene = as.factor(names(mut))) |> 
@@ -270,7 +286,8 @@ data.frame(wilcox_pval = test_pval,
   theme_bw()
 
 ```
-**Answer:** The most significant gene where gene inactivation is associated with an increased number of duplication mutations is CDK12; this strongest hit is thus worthy of further investigation. 
+
+<span style="color:#B22222">**Answer (6.1):**</span> The most significant gene where gene inactivation is associated with an increased number of duplication mutations is CDK12; this strongest hit is thus worthy of further investigation. 
 
 <br>
 <br>
@@ -294,30 +311,32 @@ for(gene_id in 1:ncol(mut)){
   test_res =
     wilcox.test(x = sv[with_mut, "deletions"],
               y = sv[!with_mut, "deletions"],
-                  alternative = "greater",
-                   conf.int = T)
+  #                alternative = "greater"
+              )
   
   print(test_res)
   
   test_pval[gene_id] = test_res$p.value
-  test_effect_size[gene_id] = test_res$estimate
+  test_effect_size[gene_id] = mean(sv[with_mut, "deletions"])/
+                              mean(sv[!with_mut, "deletions"])
   
 }
 
-
-effect_size =  test_effect_size
+# convert effect size and pvalues into plotting measurements of 
+# log fold change and - log 10 (p-value)
+effect_size =  log2(test_effect_size)
 logp = -log(test_pval, base = 10)
 
 gene_names = dimnames(mut)[[2]]
 plot( effect_size, logp, las=1, 
-      xlim=c(-250,250), 
+      xlim=c(-2,2), 
       ylim=c(0,7),
       xlab="change in deletions associated with mutation")
 text( effect_size, logp + 0.25, gene_names ) # show gene names on the plot
 ```
 
 
-**Answer:** Yes, the above volcano plot nominates inactivation of BRAC2 as associated with large numbers of deletions. 
+<span style="color:#B22222">**Answer (7.1):**</span> Yes, the above volcano plot nominates inactivation of BRAC2 as associated with large numbers of deletions. 
 
 <br>
 <br>
@@ -336,33 +355,34 @@ for(gene_id in 1:ncol(mut)){
   
   test_res =
     t.test(x = sv[with_mut, "deletions"],
-              y = sv[!with_mut, "deletions"],
-                  alternative = "greater")
+           y = sv[!with_mut, "deletions"],
+           #alternative = "greater"
+           )
   
   print(test_res)
   
   test_pval[gene_id] = test_res$p.value
-  test_effect_size[gene_id] = test_res$estimate[1] - test_res$estimate[2]
+  test_effect_size[gene_id] = test_res$estimate[1]/test_res$estimate[2]
   
 }
 
-
-effect_size =  test_effect_size
+# convert effect size and pvalues into plotting measurements of 
+# log fold change and - log 10 (p-value)
+effect_size =  log2(test_effect_size)
 logp = -log(test_pval, base = 10)
 
 gene_names = dimnames(mut)[[2]]
+
 plot( effect_size, logp, las=1, 
-      xlim=c(-250,250), 
+      xlim=c(-2,2), 
       ylim=c(0,7),
       xlab="change in deletions associated with mutation")
 text( effect_size, logp + 0.25, gene_names ) # show gene names on the plot
 ```
 
-**Answer:** The Wilcoxon and t-tests have different performances and produce different results because the two tests have different assumptions. The t-test assumes that data is normally distributed and, in at least the version of the t-test I applied, that the variance in each group is consistent across each group. Comparatively, the Wilcoxon test does not assume normal distribution or equal variances across the two groups. When the assumptions of the t-test hold, the t-test is a more powerful method for detecting differences in means across groups, but when these assumptions do not hold, t-test results can be misleading. 
+<span style="color:#B22222">**Answer (7.2):**</span> The Wilcoxon and t-tests have different performances and produce different results because the two tests have different assumptions. The t-test assumes that data is normally distributed and, in at least the version of the t-test I applied, that the variance in each group is consistent across each group. Comparatively, the Wilcoxon test does not assume normal distribution or equal variances across the two groups. When the assumptions of the t-test hold, the t-test is a more powerful method for detecting differences in means across groups, but when these assumptions do not hold, t-test results can be misleading. 
 
 The difference between ranking candidates on p-value alone, rather than p-value and effect size, is that this can sometimes prioritize different candidates for follow-up. When we only use p-values to rank candidates, we may follow up on candidates who don't have the largest effect sizes. This scenario may occur because less variability across samples can also make p-values more significant for the same observed effect size. Thus, even though such candidates are the most statistically significant, they may not be the most biologically or clinically significant candidates because their effect may be smaller than candidates with less significant p-values but greater variability among patients. 
 
-In our particular example of the association between gene inactivation and the number of deletions (question 7), either ranking approach prioritizes the same top hit. However, this is only sometimes the case. If we instead investigate what would be the second top hit in the plot for 7.1 for either approach, if we only consider p-value, PTEN would be the top hit. However, if we consider both p-value and effect size, we may instead prioritize CDH1 as it has a similar p-value to PTEN but a larger effect size.
-
-
+In our particular example of the association between gene inactivation and the number of deletions (question 7), either ranking approach prioritizes the same top hit as being associated with the greatest number of deletions (i.e., most significant, positive fold change, BRAC1). However, this is only sometimes the case. If we instead investigate what would be the second top hit in the plot for 7.1 for either approach, if we only consider p-value, PTEN would be the top hit. However, if we consider both p-value and effect size, we may instead prioritize CDH1 as it has a similar p-value to PTEN but a larger effect size.
 
