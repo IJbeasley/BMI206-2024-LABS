@@ -1,7 +1,7 @@
 rm(list=ls())
 
-VEGAS1 <- read.table("HT.pvals.out", header=T, as.is=T)
-VEGAS2 <- read.table("MS.pvals.out", header=T, as.is=T)
+VEGAS1 <- read.table(here::here("networks/HT.pvals.out"), header=T, as.is=T)
+VEGAS2 <- read.table(here::here("networks/MS.pvals.out"), header=T, as.is=T)
 ##### Sort VEGAS output by chromosome and position
 VEGAS1 <- VEGAS1[order(VEGAS1$Chr,VEGAS1$Start,VEGAS1$Stop),]
 VEGAS2 <- VEGAS2[order(VEGAS2$Chr,VEGAS2$Start,VEGAS2$Stop),]
@@ -47,7 +47,7 @@ rownames(VEGAS2) = VEGAS2$Gene
 blocks = data.frame("VEGAS1_block" = VEGAS1$block, "VEGAS2_block"= VEGAS2[rownames(VEGAS1), "block"])
 
 # Plot segments where there is a block
-png("VEGAS_blocks.png")
+png(here::here("networks/VEGAS_blocks.png"))
 k = 0.1
 plot(NA, NA, xlim=c(0,4), ylim=c(0,14000), ylab = "Numer of Genes", xlab = "", bty="n", xaxt="n", yaxt="n")
 axis(side=1, at = c(0,1,2))

@@ -80,12 +80,12 @@ giantNet.func <- function(PPI,min.fraction=0.50,total.nodes = n.nodes(PPI)){
 }
 
 ## read in parent network
-backgroundPPI <- SIF.reader("parent_PPI.sif")
+backgroundPPI <- SIF.reader(here::here("networks/parent_PPI.sif"))
 set.seed(1980)
 
 ## read in GWAS profiles
-VEGAS1 <- read.table("HT.pvals.out", header=T, as.is=T)
-VEGAS2 <- read.table("MS.pvals.out", header=T, as.is=T)
+VEGAS1 <- read.table(here::here("networks/HT.pvals.out"), header=T, as.is=T)
+VEGAS2 <- read.table(here::here("networks/MS.pvals.out"), header=T, as.is=T)
 p.BlockDefine.threshold <- 0.05
 PPInodes <- get.nodes(backgroundPPI)
 VEGAS1 <- subset(VEGAS1, GenePvalue<p.BlockDefine.threshold)
@@ -165,7 +165,7 @@ big.full <- as.data.frame(rbind(cbind(percentile=0.50, Edge=as.numeric(big.full[
 
 qcolours <- rep(c(brewer.pal(n = 7, name = "Set1")),6)
 
-pdf("pathway_permutation.pdf",width=9, height=9, onefile=T)
+pdf(here::here("networks/pathway_permutation.pdf"),width=9, height=9, onefile=T)
 fill.data <- full.edge[full.edge$percentile==0.5,]
 fill.loess <- loess(edge~Nodes,fill.data,span=1)
 actual.size <- as.data.frame(actual.size)

@@ -3,7 +3,7 @@ rm(list=ls())
 library("ggplot2")
 library("RColorBrewer")
 
-wtcc <- read.table("MS.pvals.out", header=T, as.is=T)
+wtcc <- read.table(here::here("networks/MS.pvals.out"), header=T, as.is=T)
 
 wtcc$Start <- wtcc$Start/1000
 for(j in 2:22){
@@ -17,7 +17,7 @@ wtcc$Color_Dis <-ifelse(wtcc$GenePvalue< 0.05, (wtcc$Chr %% 2)+2, wtcc$Color_Dis
 
 colours <- c("#D3D3D3","#808080",brewer.pal(n = 3, name = "Set1"))
 
-pdf("Manhattan_plot.pdf",width=12,height=6)
+pdf(here::here("networks/Manhattan_plot.pdf"),width=12,height=6)
 p <- ggplot(wtcc, aes(Start, Discovery_log))+geom_point(size=1.5,alpha=0.6,aes(colour=as.factor(Color_Dis)))+
   scale_colour_manual(values = colours) +
   #scale_color_brewer(palette="Set1")+
