@@ -1,0 +1,74 @@
+---
+title: "Lab 4: Networks"
+subtitle: "BMI 206"
+author: "Isobel Beasley"
+date: "2024-11-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Question 1. 
+
+After exploring the Manhattan plots, and qq-plots from each GWAS, what can you tell about the power of each study?
+
+```{r q1_run}
+source(here::here("networks/Manhattan_plot.R"))
+source(here::here("networks/qqplot.R"))
+```
+
+```{r q1_view_1, echo=FALSE, results='asis'}
+cat('<iframe src="Manhattan_plot.pdf" width="100%" height="600px"></iframe>')
+```
+
+```{r q1_view_2, echo=FALSE, results='asis'}
+cat('<iframe src="qqplot.pdf" width="100%" height="600px"></iframe>')
+```
+
+## Question 2. Using Cytoscape, analyze the PPI and describe its main network.
+
+## Question 3. Using Cytoscape, find the first order networks (p<0.05) for each GWAS.
+
+## Question 4. Source “Pathway_permutation.r”. Are the first order networks from both GWAS more connected than expected? What does this mean?
+
+```{r q4_run, results='hide'}
+#source(here::here("networks/Pathway_permutations.R"))
+system(paste("RScript",
+             here::here("networks/Pathway_permutation.R"), 
+             "-p networks/parent_PPI.sif",
+             "-o networks/q4_pathway_permutation.pdf"
+             )
+       )
+```
+
+```{r q4_view, echo=FALSE, results='asis'}
+cat('<iframe src="q4_pathway_permutations.pdf" width="100%" height="600px"></iframe>')
+```
+
+
+## Question 5. Run BINGO App on all nodes from largest connected component. What biological processes emerge from the first order networks?
+
+## Question 6. Map and color known MS and HT genes onto their respective first order nets. Interpret results.
+
+## Question 7. Repeat steps 3 and 4 with directed protein network from PNAS paper. 
+
+```{r q7_run, results='hide'}
+#source(here::here("networks/Pathway_permutations.R"))
+system(paste("RScript",
+             here::here("networks/Pathway_permutation.R"), 
+             "-p networks/Directed_PPI.sif",
+             "-o networks/q7_pathway_permutation.pdf"
+             )
+       )
+```
+
+```{r q7_view, echo=FALSE, results='asis'}
+cat('<iframe src="q4_pathway_permutations.pdf" width="100%" height="600px"></iframe>')
+```
+
+## Question 8. Color nodes by controllability category (dispensable, indispensable, neutral).
+
+## Question 9. Repeat step 6. Are MS-associated genes more enriched in any controllability category? Interpret. 
+
