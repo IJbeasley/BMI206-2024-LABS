@@ -18,10 +18,13 @@ wtcc$Color_Dis <-ifelse(wtcc$GenePvalue< 0.05, (wtcc$Chr %% 2)+2, wtcc$Color_Dis
 colours <- c("#D3D3D3","#808080",brewer.pal(n = 3, name = "Set1"))
 
 pdf(here::here("networks/Manhattan_plot.pdf"),width=12,height=6)
-p <- ggplot(wtcc, aes(Start, Discovery_log))+geom_point(size=1.5,alpha=0.6,aes(colour=as.factor(Color_Dis)))+
+p <- ggplot(wtcc, aes(Start, Discovery_log))+
+  geom_point(size=1.5,alpha=0.6,aes(colour=as.factor(Color_Dis)))+
   scale_colour_manual(values = colours) +
   #scale_color_brewer(palette="Set1")+
-  geom_hline(yintercept=-log10(0.05),size=0.5, colour="gray")+
+  geom_hline(yintercept=-log10(0.05),
+             linewidth=0.5, 
+             colour="gray")+
   ylab(expression(paste(-log[10]~'P value')))+
   theme_bw()+
   theme(legend.position = "none",
