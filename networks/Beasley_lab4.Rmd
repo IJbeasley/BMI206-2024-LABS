@@ -12,7 +12,10 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## <span style="color: firebrick;">  Question 1. After exploring the Manhattan plots, and qq-plots from each GWAS, what can you tell about the power of each study? </span>
 
+
+
 ```{r q1_run, eval = F, results='hide'}
+# modified scripts to allow different inputs: 
 # source(here::here("networks/Manhattan_plot.R"))
 system(paste("RScript",
              here::here("networks/Manhattan_plot.R"), 
@@ -20,6 +23,7 @@ system(paste("RScript",
              "-o networks/ms_manhattan_plot.pdf"
              )
        )
+
 
 system(paste("RScript",
              here::here("networks/Manhattan_plot.R"), 
@@ -46,17 +50,32 @@ system(paste("RScript",
 
 ```
 
+### Plot: Manhattan Plot for MS GWAS
+
 ```{r q1_view_1, echo=FALSE, results='asis'}
 cat('<iframe src="ms_manhattan_plot.pdf" width="950px" height="525px"></iframe>')
+
+```
+
+### Plot: Manhattan Plot for HT GWAS
+
+```{r q1_view_1b, echo=FALSE, results='asis'}
 cat('<iframe src="ht_manhattan_plot.pdf" width="950px" height="525px"></iframe>')
 ```
 
+### Plot: QQplot for MS GWAS
+
 ```{r q1_view_2, echo=FALSE, results='asis'}
 cat('<iframe src="ms_qqplot.pdf" width="500px" height="550px"></iframe>')
+```
+
+### Plot QQplot for HT GWAS
+
+```{r q1_view_2a, echo=FALSE, results='asis'}
 cat('<iframe src="ht_qqplot.pdf" width="500px" height="550px"></iframe>')
 ```
 
-MS has more power (seen by more significant findings)
+The MS GWAS is more powerful than the HT GWAS. We can infer this different by noting that more variant associations are above the y=x line in the MS QQplot, and more variants above the horizontal line of significance threshold in the MS Manhattan plot. 
 
 <br>
 <br>
@@ -65,17 +84,17 @@ MS has more power (seen by more significant findings)
 ## <span style="color: firebrick;">  Question 2. Using Cytoscape, analyze the PPI and describe its main network. </span> 
 
 <br>
-<br>
 
 ### Plot: Full Parent PPI Network
 
 <img src="Q2_Parent_full_network.png" alt="Parent PPI full network" />
 
-![Parent PPI full network](Q2_Parent_full_network.png "")
+<br>
 
-The above image shows the full network. After running analysis in cytoscape, the resulting summary information and plots were produced: 
+The above plot is of the full parent network. After running analysis in cytoscape, the resulting summary information and plots were produced: 
 
-Summary Statistics  
+### Summary Statistics: Full Parent Network
+
 Number of nodes: 8960  
 Number of edges: 27724  
 Avg. number of neighbors:    6.363  
@@ -89,16 +108,25 @@ Network centralization:    0.033
 Connected components: 164  
 Analysis time (sec):   34.270  
 
+<br>
+
 #### Plot: Parent PPI Network Degree Distribution Plot
 
 
-![Parent Degree Distribution](Q2_Parent_degree_distribution.png)
+<img src="Q2_Parent_degree_distribution.png" alt="Parent Degree Distribution" />
+
 
 ### Plot: Parent PPI Betweeness by Degree Distribution
 
-![Parent Betweeness by Degree Distribution](Q2_Parent_betweeness_by_degree.png)
-- show degree distribution 
-- scale free, 
+<img src="Q2_Parent_betweeness_by_degree.png" alt="Parent Betweenness by Degree Distribution" />
+
+
+### Describe the main Parent PPI network
+
+
+Most nodes in the main Parent PPI network have very few connections (low degree), as can be seen in the network degree plot. The 'power-law' shape of this plot also indicates that the network doesn't follow a random distribution - but could follow a scale-free or hierarchical distribution. 
+
+The general upward trend of the betweeness by degree distribution indicates that a small number genes in this network are hubs, or common bridges linking other genes in the shortest path. This could perhaps indicate that the network is hierarchical, rather than scale-free. 
 
 <br>
 <br>
@@ -108,11 +136,12 @@ Analysis time (sec):   34.270
 
 ### Plot: First order network for MS GWAS
 
-![MS Parent Network](Q3_MS_parent_network.png)
+<img src="Q3_MS_parent_network.png" alt="MS Parent Network" />
+
 
 ### Plot: First order network for HT GWAS
 
-![HT Parent Network](Q3_HT_parent_network.png)
+<img src="Q3_HT_parent_network.png" alt="HT Parent Network" />
 
 <br>
 <br>
@@ -134,6 +163,16 @@ system(paste("RScript",
 cat('<iframe src="q4_pathway_permutation.pdf" width="900px" height="950px"></iframe>')
 ```
 
+<br> 
+
+The above plots indicate that: 
+
+-   Both MS and HT first order networks have more connections (edges) than would be expected given the number of genes (nodes) in these networks
+-   MS, but *not HT* first order networks have bigger largest connected components than would be expected given the number of genes in these networks
+-   MS and HT first order networks have smaller largest connected components than would be expected given the number of edges (connections between genes) in these networks 
+
+Overall, these observations suggest that networks from GWAS are more connected that would be expected (although, this is much more true for MS than HT). 
+
 <br>
 <br>
 <br>
@@ -142,22 +181,27 @@ cat('<iframe src="q4_pathway_permutation.pdf" width="900px" height="950px"></ifr
 
 ### Plot: Network produced by taking the largest connected component of  the full parent network and performing BINGO analysis 
 
-![Largest component parent BINGO](Q5_Largest_Component_BINGO.png)
+<img src="Q5_Largest_Component_BINGO.png" alt="Largest component parent BINGO" />
 
+
+<br> 
 
 #### Table: Top results from BINGO analysis of largest component of parent network
 
-![All big component BINGO results](Q5_BINGO_All_Results.png)
+<img src="Q5_BINGO_All_Results.png" alt="All big component BINGO results" />
+
+<br> 
 
 ### Plot: Network produced by taking the largest connected component of  first order network for MS and performing BINGO analysis 
 
+<img src="Q5_BINGO_MS_Largest_Subnetwork.png" alt="MS BINGO Network" />
 
-![MS BINGO Network](Q5_BINGO_MS_Largest_Subnetwork.png)
-
+<br>
 
 #### Table: Top results from BINGO analysis of first order network for MS
 
-![MS BINGO Top Results](Q5_BINGO_MS_Top_Results.png)
+<img src="Q5_BINGO_MS_Top_Results.png" alt="MS BINGO Top Results" />
+
 
 Looking at the top GO term enrichments by BINGO analysis (above) immune system related processes clearly emerge as important.
 
@@ -169,11 +213,16 @@ Looking at the top GO term enrichments by BINGO analysis (above) immune system r
 
 #### Plot: MS first order net, known MS genes colored in yellow
 
-![MS gene coloured on first order net](Q6_MS_parent_network_col.png)
+<img src="Q6_MS_parent_network_col.png" alt="MS gene coloured on first order network" />
+
 
 #### Plot: HT first order net, known HT genes colored in yellow
 
-![HT genes coloured on first order net](Q6_HT_parent_network_col.png)
+<img src="Q6_HT_parent_network_col.png" alt="HT genes coloured on first order network" />
+
+#### Interpret the results: 
+
+The above plots suggest that the MS GWAS identified many more genes already known to involved in its pathogenesis, than the HT GWAS did. In other words, the HT GWAS identified a greater proportion of genes that had yet to be characterised as contributing to this phenotype - and therefore this GWAS contributed a greater proportion of new knowledge. 
 
 <br>
 <br>
@@ -185,11 +234,12 @@ Looking at the top GO term enrichments by BINGO analysis (above) immune system r
 
 #### Plot: First order MS network (subset of the directed network)
 
-![First order MS network](Q7_MS_directed.png)
+<img src="Q7_MS_directed.png" alt="First order MS network" />
+
 
 #### Plot: First order HT network (subset of the directed network)
 
-![First order HT network](Q7_HT_directed.png)
+<img src="Q7_HT_directed.png" alt="First order HT network" />
 
 ### 7b. Repeat Step 4: Source “Pathway_permutation.r”. Are the first order networks from both GWAS more connected than expected? What does this mean?
 
@@ -204,9 +254,14 @@ system(paste("RScript",
 ```
 
 ```{r q7_view, echo=FALSE, results='asis'}
-cat('<iframe src="q4_pathway_permutation.pdf" width="900px" height = "950px"></iframe>')
+cat('<iframe src="q7_pathway_permutation.pdf" width="900px" height = "950px"></iframe>')
 ```
 
+*Obvs some problem with plot ... 
+
+The above plots indicate that: 
+
+- HT first order networks have smaller largest connected components than would be expected given the number of edges (connections between genes) in these networks 
 
 <br>
 <br>
@@ -217,16 +272,19 @@ cat('<iframe src="q4_pathway_permutation.pdf" width="900px" height = "950px"></i
 
 ### Plot: Full directed network coloured by controllability: blue (dispensable), red (indispensable), grey (neutral).
 
-![Full Directed Network Coloured](Q8_Full_network_col.png)
+<img src="Q8_Full_network_col.png" alt="Full Directed Network Coloured" />
+
 
 ### Plot: MS first order Network coloured by controllability: blue (dispensable), red (indispensable), grey (neutral).
 
-![MS first order network coloured](Q8_MS_Directed_Coloured.png)
+<img src="Q8_MS_Directed_Coloured.png" alt="MS first order network coloured" />
 
 
-### PLot: HT first order Network coloured by controllability: blue (dispensable), red (indispensable), grey (neutral).
 
-![HT first order network coloured](Q8_HT_Directed_Coloured.png)
+### Plot: HT first order Network coloured by controllability: blue (dispensable), red (indispensable), grey (neutral).
+
+<img src="Q8_HT_Directed_Coloured.png" alt="HT first order network coloured" />
+
 <br>
 <br>
 <br>
@@ -237,11 +295,13 @@ cat('<iframe src="q4_pathway_permutation.pdf" width="900px" height = "950px"></i
 
 #### Plot: MS first order net (from directed network), with known MS genes colored in red
 
-![MS first order network, color MS genes](Q9_MS_Directed_Col_Known_Genes.png)
+<img src="Q9_MS_Directed_Col_Known_Genes.png" alt="MS first order network, color MS genes" />
+
 
 #### Plot: HT first order network, with known HT genes colored red
 
-![HT first order network, color HT genes](Q9_HT_Directed_Col_Known_Genes.png)
+<img src="Q9_HT_Directed_Col_Known_Genes.png" alt="HT first order network, color HT genes" />
+
 
 ### 9b. Are MS-associated genes more enriched in any controllability category? Interpret. 
 
@@ -270,7 +330,7 @@ phyper(k= k,
        q = q)
 ```
 
-This p-value suggest that MS-associated genes are not enriched for controllable genes. This is unsurprising given the proportion of controllable genes out of the MS-associated genes (317/549 $\approx$ 58%) is very similar to the proportion of controllable gene in the entire directed network (3667/6338).
+This p-value suggests that MS-associated genes are not enriched for controllable genes. This is unsurprising given the proportion of controllable genes out of the MS-associated genes (317/549 $\approx$ 58%) is very similar to the proportion of controllable gene in the entire directed network (3667/6338).
 
 <br>
 <br>
