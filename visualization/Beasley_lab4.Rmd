@@ -77,7 +77,15 @@ __Normalize to median depth for each cell and take the log__
 * hint: add a pseudocount of 1 to avoid log(0)
 ```{r, eval=T}
 n.umis=median(colSums(sc.mat.expr))
-sc.mat.norm=log2(sc.mat.expr / n.umis + 1)
+factors = n.umis/colSums(sc.mat.expr)
+mat = t(sc.mat.expr) * factors
+mat = t(mat)
+
+#mat = sc.mat.expr %*% diag(rep.int(1/n.umis, ncol(sc.mat.expr))) 
+#colSums(mat)
+#colSums(sc.mat.expr / n.umis)
+sc.mat.norm=log2(mat+ 1)
+#sc.mat.norm=log2(sc.mat.expr %*% (1/n.umis) + 1)
 ```
 <br>
 
@@ -100,8 +108,8 @@ hist(sc.mat.norm[1,])
 <br>
 
 __Run PCA on the normalized expression matrix__
-```{r,eval=FALSE}
-pcs=prcomp(?, rank.=30)
+```{r,eval=F}
+pcs=prcomp(sc.mat.norm, rank.=30)
 ```
 <br>
 
