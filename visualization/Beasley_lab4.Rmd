@@ -1,0 +1,128 @@
+---
+title: 'Lab 4: Visualization'
+Subtitle: "BMI 206"
+author: "Isobel Beasley"
+date: "Due: 12/5/2021"
+output: html_document
+---
+<br>
+<br>
+
+
+Read in the genes-by-cells read count matrix sc.mat
+```{r}
+load("visualization/visualization.RData")
+```
+<br>
+
+__Take a look at a few rows and columns of the matrix__
+```{r row_col, eval=TRUE}
+
+# print(sc.mat[1:3,1:3])
+
+# not running as causing problems when knitting - 
+# but runs when just using Rmarkdown interactively, 
+# so I've cut and pasted the results below
+
+"
+3 x 3 sparse Matrix of class \"dgCMatrix\"
+           AAACATACCACTCC-1 AAACATACCGCTAA-1 AAACATACTAACGC-1
+MIR1302-10                .                .                .
+FAM138A                   .                .                .
+OR4F5                     .                .                .
+"
+```
+<br>
+
+__How many cells?__
+```{r, eval=TRUE}
+ncol(sc.mat)
+```
+<br>
+
+__How many genes?__
+```{r,eval=TRUE}
+nrow(sc.mat)
+```
+<br>
+
+__Produce a summary of counts for the first cell__
+```{r, eval=T}
+summary(sc.mat[, 1])
+```
+<br>
+
+__Produce a summary of counts for the APOL2 gene__
+```{r, eval = T}
+summary(sc.mat["APOL2",])
+```
+<br>
+
+__Get just the genes that are expressed in at least 10 cells__
+```{r, eval=T}
+# firstly - just get the number of cells that express each gene
+n_cell_exp = rowSums(sc.mat > 0)
+# then filter by genes that are expressed in at least 10 cells
+sc.mat.expr=sc.mat[which(n_cell_exp > 10),]
+```
+<br>
+
+__How many genes are retained?__
+```{r, eval=T}
+nrow(sc.mat.expr) 
+```
+<br>
+
+__Normalize to median depth for each cell and take the log__
+* hint: add a pseudocount of 1 to avoid log(0)
+```{r, eval=T}
+n.umis=median(colSums(sc.mat.expr))
+sc.mat.norm=log2(sc.mat.expr / n.umis + 1)
+```
+<br>
+
+__Visualize distribution of normalized expression values for first cell__
+```{r,eval=T}
+hist(sc.mat.norm[,1])
+```
+<br>
+
+__Visualize distribution of normalized expression values for first gene__
+```{r, eval=T}
+hist(sc.mat.norm[1,])
+```
+<br>
+<br>
+
+
+*NOTE: prcomp and Rtsne are slow on a matrix this big, so you can use the saved data frame sc.df that was loaded with the input count matrix two dimensions for PCA and two for tSNE were saved as columns "pc1", "pc2", "tsne1", "tsne2" 
+
+<br>
+
+__Run PCA on the normalized expression matrix__
+```{r,eval=FALSE}
+pcs=prcomp(?, rank.=30)
+```
+<br>
+
+__Visualize PCA results__
+```{r,eval=T}
+library(ggplot2)
+ggplot(sc.df, aes(x=pc1, y=pc2, colour=cell.type)) + 
+  geom_point()
+```
+<br>
+
+__Run tsne on the normalized expression matrix using PCA as starting values__
+```{r,eval=F}
+tsne=Rtsne(pcs$x)
+```
+<br>
+
+__Visualize TSNE results__
+```{r,eval=T}
+ggplot(sc.df, aes(x=tsne1, y=tsne2, colour=cell.type)) + 
+  geom_point()
+```
+
+
