@@ -123,6 +123,7 @@ ggplot(sc.df, aes(x=pc1, y=pc2, colour=cell.type)) +
 
 __Run tsne on the normalized expression matrix using PCA as starting values__
 ```{r,eval=F}
+library(Rtsne)
 tsne=Rtsne(pcs$x)
 ```
 <br>

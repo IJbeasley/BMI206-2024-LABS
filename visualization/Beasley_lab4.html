@@ -446,7 +446,8 @@ ggplot(sc.df, aes(x=pc1, y=pc2, colour=cell.type)) +
 <br></p>
 <p><strong>Run tsne on the normalized expression matrix using PCA as
 starting values</strong></p>
-<pre class="r"><code>tsne=Rtsne(pcs$x)</code></pre>
+<pre class="r"><code>library(Rtsne)
+tsne=Rtsne(pcs$x)</code></pre>
 <p><br></p>
 <p><strong>Visualize TSNE results</strong></p>
 <pre class="r"><code>ggplot(sc.df, aes(x=tsne1, y=tsne2, colour=cell.type)) + 
